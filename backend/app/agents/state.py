@@ -25,6 +25,9 @@ class RiskInvestigationState(BaseModel):
     graph_propagation_paths: List[List[str]] = Field(default_factory=list)
     risk_summary: Optional[str] = None
     estimated_portfolio_impact_pct: Optional[float] = None
+    uncertainty_range_pct: Optional[List[float]] = Field(default_factory=lambda: [-5.8, -3.1])
+    confidence_score: float = 0.88
+    is_modelled_data: bool = True
     mitigation_recommendations: Annotated[List[Dict[str, Any]], operator.add] = Field(default_factory=list)
     status: str = "initialized"
     trace_id: Optional[str] = None

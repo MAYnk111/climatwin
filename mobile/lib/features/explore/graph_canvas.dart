@@ -8,8 +8,9 @@ enum GraphViewState { loading, loaded, empty, error }
 
 class InteractiveDependencyGraph extends StatefulWidget {
   final ApiClient? apiClient;
+  final void Function(ClimaNode node)? onInvestigateNode;
 
-  const InteractiveDependencyGraph({super.key, this.apiClient});
+  const InteractiveDependencyGraph({super.key, this.apiClient, this.onInvestigateNode});
 
   @override
   State<InteractiveDependencyGraph> createState() =>
@@ -89,7 +90,6 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
   void _showNodeBottomSheet(ClimaNode node) {
     if (_graphData == null) return;
 
-    // Compute incoming and outgoing relationships for the selected node
     final incomingEdges = _graphData!.edges
         .where((e) => e.targetId == node.id)
         .toList();
@@ -97,7 +97,6 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
         .where((e) => e.sourceId == node.id)
         .toList();
 
-    // Map node IDs to nodes for label lookup
     final nodeMap = {for (var n in _graphData!.nodes) n.id: n};
 
     showModalBottomSheet(
@@ -109,9 +108,82 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
         incomingEdges: incomingEdges,
         outgoingEdges: outgoingEdges,
         nodeMap: nodeMap,
+        onInvestigate: (selected) {
+          if (widget.onInvestigateNode != null) {
+            widget.onInvestigateNode!(selected);
+          } else {
+            _showInSituInvestigationSheet(selected);
+          }
+        },
       ),
     );
   }
+
+  void _showInSituInvestigationSheet(ClimaNode node) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: ClimatwinTheme.surfaceCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Column(
+            children: [
+              AppBar(
+                title: Text('Investigation: ${node.label}'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  )
+                ],
+              ),
+              Expanded(
+                child: FutureBuilder(
+                  future: _apiClient.runInvestigation(
+                    targetId: node.id,
+                    hazardTitle: 'Propagation Exposure for ${node.label}',
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: ClimatwinTheme.darkGreenPrimary));
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text('Investigation error: ${snapshot.error}', style: const TextStyle(color: ClimatwinTheme.riskHigh)),
+                        ),
+                      );
+                    }
+                    final res = snapshot.data!;
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        Text('Finding: ${res.riskSummary ?? "Exposure confirmed."}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 12),
+                        Text('Estimated Impact: ${res.estimatedPortfolioImpactPct}% (Confidence: ${(res.confidenceScore * 100).toInt()}%)', style: const TextStyle(color: ClimatwinTheme.riskHigh, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        const Text('Active Transmission Paths:', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ...res.graphPropagationPaths.map((p) => Text('• ${p.join(" → ")}', style: const TextStyle(fontSize: 11))),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -712,13 +784,16 @@ class _NodeDetailBottomSheet extends StatelessWidget {
   final List<ClimaEdge> incomingEdges;
   final List<ClimaEdge> outgoingEdges;
   final Map<String, ClimaNode> nodeMap;
+  final void Function(ClimaNode node)? onInvestigate;
 
   const _NodeDetailBottomSheet({
     required this.node,
     required this.incomingEdges,
     required this.outgoingEdges,
     required this.nodeMap,
+    this.onInvestigate,
   });
+
 
   @override
   Widget build(BuildContext context) {
@@ -937,7 +1012,9 @@ class _NodeDetailBottomSheet extends StatelessWidget {
                   label: const Text('Investigate Propagation Risk'),
                   onPressed: () {
                     Navigator.pop(context);
+                    onInvestigate?.call(node);
                   },
+
                 ),
               ),
             ],

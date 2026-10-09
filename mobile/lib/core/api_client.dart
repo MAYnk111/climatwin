@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../features/explore/graph_models.dart';
+import '../features/intelligence/intelligence_models.dart';
+import '../features/simulate/simulate_models.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -46,7 +48,6 @@ class ApiClient {
         _httpClient = httpClient ?? http.Client();
 
   static String _getDefaultBaseUrl() {
-    // Standard default: localhost works across Web, Desktop, and Android with adb reverse
     return 'http://localhost:8000/api/v1';
   }
 
@@ -62,7 +63,6 @@ class ApiClient {
     final cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
     final rawUri = Uri.parse('$baseUrl$cleanEndpoint');
 
-    // Build query parameters safely
     final Map<String, dynamic> cleanParams = {};
     if (queryParams != null) {
       queryParams.forEach((key, value) {
@@ -88,6 +88,63 @@ class ApiClient {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
             },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          return jsonDecode(response.body);
+        } catch (e) {
+          throw ApiParseException(
+            'Failed to parse server response as valid JSON: $e',
+            uri: uri,
+          );
+        }
+      } else {
+        throw ApiException(
+          'Intelligence Engine returned HTTP ${response.statusCode}: ${response.body}',
+          statusCode: response.statusCode,
+          uri: uri,
+        );
+      }
+    } on TimeoutException {
+      throw ApiTimeoutException(
+        'Connection timed out after ${timeoutDuration.inSeconds} seconds. Please check if the backend is running.',
+        uri: uri,
+      );
+    } on SocketException catch (e) {
+      throw ApiConnectionException(
+        'Failed to connect to backend server at $baseUrl. Ensure FastAPI server is running on port 8000. ($e)',
+        uri: uri,
+      );
+    } on http.ClientException catch (e) {
+      throw ApiConnectionException(
+        'HTTP client connection failure: $e',
+        uri: uri,
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Unexpected network error: $e', uri: uri);
+    }
+  }
+
+  /// Generic POST request with timeout and exception translation.
+  Future<dynamic> post(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
+    final uri = Uri.parse('$baseUrl$cleanEndpoint');
+
+    try {
+      final response = await _httpClient
+          .post(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: body != null ? jsonEncode(body) : null,
           )
           .timeout(timeoutDuration);
 
@@ -172,5 +229,54 @@ class ApiClient {
           .toList();
     }
     return [];
+  }
+
+  /// Runs the LangGraph AI risk investigation workflow.
+  Future<InvestigationResult> runInvestigation({
+    String hazardEventId = 'hz_taiwan_drought',
+    String? targetId,
+    String? hazardTitle,
+    String? hazardDescription,
+    Map<String, dynamic>? graphContext,
+  }) async {
+    final payload = {
+      'hazard_event_id': hazardEventId,
+      if (targetId != null) 'target_id': targetId,
+      if (hazardTitle != null) 'hazard_title': hazardTitle,
+      if (hazardDescription != null) 'hazard_description': hazardDescription,
+      if (graphContext != null) 'graph_context': graphContext,
+    };
+
+    final data = await post('/intelligence/investigate', body: payload);
+    if (data is Map<String, dynamic>) {
+      return InvestigationResult.fromJson(data);
+    } else {
+      throw ApiParseException('Expected JSON object for investigation response');
+    }
+  }
+
+  /// Runs the climate scenario stress test simulation.
+  Future<SimulationResult> runSimulation({
+    double severityMultiplier = 1.8,
+    int durationMonths = 4,
+    bool adaptationActive = true,
+    bool alternativeSupplierActive = true,
+    List<String>? targetHoldingTickers,
+  }) async {
+    final payload = {
+      'severity_multiplier': severityMultiplier,
+      'duration_months': durationMonths,
+      'adaptation_mitigation_active': adaptationActive,
+      'alternative_supplier_available': alternativeSupplierActive,
+      if (targetHoldingTickers != null)
+        'target_holding_tickers': targetHoldingTickers,
+    };
+
+    final data = await post('/simulations/run', body: payload);
+    if (data is Map<String, dynamic>) {
+      return SimulationResult.fromJson(data);
+    } else {
+      throw ApiParseException('Expected JSON object for simulation response');
+    }
   }
 }

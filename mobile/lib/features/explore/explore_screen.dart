@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import 'graph_canvas.dart';
+import 'graph_models.dart';
 
 class ExploreScreen extends StatefulWidget {
   final int initialTabIndex;
+  final void Function(ClimaNode node)? onInvestigateNode;
 
-  const ExploreScreen({super.key, this.initialTabIndex = 0});
+  const ExploreScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.onInvestigateNode,
+  });
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -110,7 +116,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         // Body content
         Expanded(
           child: _selectedSegment == 0
-              ? const InteractiveDependencyGraph()
+              ? InteractiveDependencyGraph(
+                  onInvestigateNode: widget.onInvestigateNode,
+                )
               : _buildHoldingsView(),
         ),
       ],

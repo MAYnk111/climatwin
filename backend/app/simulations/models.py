@@ -36,3 +36,15 @@ class ScenarioSimulationResult(BaseModel):
     portfolio_drawdown_pct: float
     stressed_holdings: List[HoldingStressedResult]
     branch_comparison: Dict[str, float] = Field(default_factory=dict)
+    is_modelled_data: bool = True
+
+
+class SimulationRequest(BaseModel):
+    scenario_id: str = "scen_q4_water_stress"
+    scenario_name: str = "Q4 Taiwan Severe Drought & Packaging Bottleneck"
+    severity_multiplier: float = 1.8
+    duration_months: int = 4
+    adaptation_mitigation_active: bool = True
+    alternative_supplier_available: bool = True
+    target_holding_tickers: Optional[List[str]] = None
+    baseline_holdings: Optional[List[HoldingBaseline]] = None
