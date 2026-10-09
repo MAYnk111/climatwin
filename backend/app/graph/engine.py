@@ -165,8 +165,18 @@ class DependencyGraphEngine:
                 if rel_set is None or e.relationship.value in rel_set:
                     filtered_edges.append(e)
 
+        # Compute propagation paths for active nodes
+        hazard_nodes = [n_id for n_id in allowed_nodes if self.node_metadata[n_id].type == NodeType.CLIMATE_HAZARD]
+        target_nodes = [n_id for n_id in allowed_nodes if self.node_metadata[n_id].type in (NodeType.CUSTOMER, NodeType.COMPANY)]
+        propagation_paths: List[PropagationPath] = []
+        for h in hazard_nodes:
+            for t in target_nodes:
+                propagation_paths.extend(self.find_hazard_propagation_paths(hazard_id=h, target_id=t))
+
         return DependencyGraphResponse(
             nodes=filtered_nodes,
             edges=filtered_edges,
+            propagation_paths=propagation_paths,
             metadata={"total_nodes": len(filtered_nodes), "total_edges": len(filtered_edges)},
         )
+
