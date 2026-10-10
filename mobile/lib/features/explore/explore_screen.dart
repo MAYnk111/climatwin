@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/currency_utils.dart';
+import '../company/company_detail_screen.dart';
 import 'graph_canvas.dart';
 import 'graph_models.dart';
 
@@ -20,6 +22,7 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   late int _selectedSegment;
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   final List<Map<String, dynamic>> _holdings = [
     {
@@ -30,6 +33,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       "score": 62,
       "risk_color": ClimatwinTheme.riskMedium,
       "bottleneck": "Taiwan packaging tier",
+      "sector": "Consumer Electronics",
+      "price_usd": 228.40,
     },
     {
       "ticker": "NVDA",
@@ -39,6 +44,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       "score": 79,
       "risk_color": ClimatwinTheme.riskHigh,
       "bottleneck": "Foundry water supply",
+      "sector": "Semiconductors & AI",
+      "price_usd": 118.20,
     },
     {
       "ticker": "BMW.DE",
@@ -48,6 +55,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       "score": 58,
       "risk_color": ClimatwinTheme.riskMedium,
       "bottleneck": "Rhine river logistics",
+      "sector": "Automotive & Freight",
+      "price_usd": 88.60,
     },
     {
       "ticker": "MSFT",
@@ -57,6 +66,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       "score": 38,
       "risk_color": ClimatwinTheme.riskLow,
       "bottleneck": "Data center thermal load",
+      "sector": "Cloud Infrastructure",
+      "price_usd": 442.10,
     },
   ];
 
@@ -126,6 +137,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildHoldingsView() {
+    final filtered = _holdings.where((h) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final ticker = (h["ticker"] as String).toLowerCase();
+      final name = (h["name"] as String).toLowerCase();
+      final bottleneck = (h["bottleneck"] as String).toLowerCase();
+      return ticker.contains(q) || name.contains(q) || bottleneck.contains(q);
+    }).toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -134,12 +154,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
           // Search box
           TextField(
             controller: _searchController,
+            onChanged: (v) => setState(() => _searchQuery = v),
             decoration: InputDecoration(
               hintText: 'Search portfolio company or supplier...',
               hintStyle: const TextStyle(fontSize: 13, color: ClimatwinTheme.textMuted),
               prefixIcon: const Icon(Icons.search, size: 20, color: ClimatwinTheme.textSecondary),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
               filled: true,
-              fillColor: ClimatwinTheme.surfaceCard,
+              fillColor: ClimatwinTheme.surfaceElevated,
               contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -153,37 +183,70 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
           const SizedBox(height: 16),
 
-          const Text(
-            'Portfolio Holdings (Ranked by Climate Risk)',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: ClimatwinTheme.textPrimary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Portfolio Holdings (Ranked by Climate Risk)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: ClimatwinTheme.textPrimary,
+                ),
+              ),
+              Text(
+                '${filtered.length} Entities',
+                style: const TextStyle(fontSize: 11, color: ClimatwinTheme.textMuted),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
 
-          ..._holdings.map((h) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
+          ...filtered.map((h) {
+            final double inrPrice = (h["price_usd"] as double) * CurrencyFormatter.usdToInrRate;
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CompanyDetailScreen(
+                        ticker: h["ticker"] as String,
+                        name: h["name"] as String,
+                        sector: h["sector"] as String,
+                        basePriceUsd: h["price_usd"] as double,
+                        climateRiskScore: h["score"] as int,
+                        riskLevel: h["climate_risk"] as String,
+                        onInspectGraph: () {
+                          Navigator.pop(context);
+                          setState(() => _selectedSegment = 0);
+                        },
+                      ),
+                    ),
+                  );
+                },
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: ClimatwinTheme.surfaceBackground,
+                          color: ClimatwinTheme.surfaceElevated,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: ClimatwinTheme.borderSubtle),
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          h["ticker"],
+                          (h["ticker"] as String).split('.').first,
                           style: const TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: ClimatwinTheme.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            color: ClimatwinTheme.darkGreenPrimary,
                           ),
                         ),
                       ),
@@ -193,7 +256,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              h["name"],
+                              h["name"] as String,
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -207,6 +270,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 fontSize: 11,
                                 color: ClimatwinTheme.textSecondary,
                               ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Price: ${CurrencyFormatter.formatPrice(inrPrice)}',
+                              style: const TextStyle(fontSize: 10, color: ClimatwinTheme.accentTeal, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -223,7 +291,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             ),
                           ),
                           Text(
-                            h["climate_risk"],
+                            h["climate_risk"] as String,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -235,7 +303,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ],
                   ),
                 ),
-              )),
+              ),
+            );
+          }),
         ],
       ),
     );

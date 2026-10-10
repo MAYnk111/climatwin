@@ -43,7 +43,7 @@ class ApiClient {
   ApiClient({
     String? baseUrl,
     http.Client? httpClient,
-    this.timeoutDuration = const Duration(seconds: 10),
+    this.timeoutDuration = const Duration(seconds: 25),
   })  : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
         _httpClient = httpClient ?? http.Client();
 
@@ -191,6 +191,7 @@ class ApiClient {
     String? minRiskLevel,
     int? maxDepth,
     String? centerNodeId,
+    bool includeSectivia = false,
   }) async {
     final Map<String, dynamic> params = {};
     if (relationshipTypes != null && relationshipTypes.isNotEmpty) {
@@ -205,6 +206,9 @@ class ApiClient {
     if (centerNodeId != null && centerNodeId.isNotEmpty) {
       params['center_node_id'] = centerNodeId;
     }
+    if (includeSectivia) {
+      params['include_sectivia'] = 'true';
+    }
 
     final data = await get('/graph', queryParams: params);
     if (data is Map<String, dynamic>) {
@@ -212,6 +216,17 @@ class ApiClient {
     } else {
       throw ApiParseException('Expected JSON object for dependency graph payload');
     }
+  }
+
+  /// Fetches CMIP6 climate model projections from World Bank CCKP adapter.
+  Future<dynamic> fetchCountryProjections({
+    String countryCode = 'TWN',
+    String variable = 'tas',
+  }) async {
+    return await get('/climate/cckp', queryParams: {
+      'country_code': countryCode,
+      'variable': variable,
+    });
   }
 
   /// Fetches propagation paths from hazard to target.
@@ -279,4 +294,103 @@ class ApiClient {
       throw ApiParseException('Expected JSON object for simulation response');
     }
   }
+
+  /// Fetches real-time environmental data via Open-Meteo adapter.
+  Future<dynamic> fetchLiveWeather({
+    String? regionCode,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final queryParams = <String, String>{};
+    if (regionCode != null) queryParams['region_code'] = regionCode;
+    if (latitude != null) queryParams['latitude'] = latitude.toString();
+    if (longitude != null) queryParams['longitude'] = longitude.toString();
+
+    return await get('/adapters/climate/weather', queryParams: queryParams.isNotEmpty ? queryParams : null);
+  }
+
+  /// Fetches live USD/INR exchange rate from open exchange rate service.
+  Future<Map<String, dynamic>> fetchMarketFxRate() async {
+    final data = await get('/adapters/market/fx-rate');
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    throw ApiParseException('Expected JSON object for market FX response');
+  }
+
+  /// Fetches verified climate news bulletins feed.
+  Future<List<dynamic>> fetchClimateNewsFeed() async {
+    final data = await get('/adapters/news/feed');
+    if (data is List) {
+      return data;
+    }
+    throw ApiParseException('Expected JSON array for news feed');
+  }
+
+  /// Fetches live GDELT 2.0 climate disruption news articles with 25-minute TTL caching.
+  Future<Map<String, dynamic>> fetchGdeltNews({
+    String query = 'drought semiconductor taiwan',
+    String topic = 'Drought',
+  }) async {
+    final data = await get(
+      '/climate/gdelt',
+      queryParams: {
+        'query': query,
+        'topic': topic,
+      },
+    );
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    throw ApiParseException('Expected JSON object for GDELT news response');
+  }
+
+  /// Calculates quantitative physical risk with attribution and calibration metadata.
+  Future<PhysicalRiskResult> calculatePhysicalRisk({
+    String hazardId = 'hz_taiwan_drought',
+    String hazardTitle = 'Central Taiwan Extreme Drought',
+    String targetNodeId = 'comp_nvidia',
+    double portfolioAumUsd = 250000000.0,
+    bool hasSecondarySupplier = false,
+    bool hasOnsiteMitigation = false,
+    bool synthesizeWithGemini = true,
+    Map<String, double>? weights,
+  }) async {
+    final payload = {
+      'hazard_id': hazardId,
+      'hazard_title': hazardTitle,
+      'target_node_id': targetNodeId,
+      'portfolio_aum_usd': portfolioAumUsd,
+      'has_secondary_supplier': hasSecondarySupplier,
+      'has_onsite_mitigation': hasOnsiteMitigation,
+      'synthesize_with_gemini': synthesizeWithGemini,
+      if (weights != null) 'weights': weights,
+    };
+    final data = await post('/risk/calculate', body: payload);
+    if (data is Map<String, dynamic>) {
+      return PhysicalRiskResult.fromJson(data);
+    } else {
+      throw ApiParseException('Expected JSON object for risk calculation response');
+    }
+  }
+
+  /// Fetches dataset calibration audit findings.
+  Future<Map<String, dynamic>> fetchCalibrationAudit() async {
+    final data = await get('/risk/calibration/audit');
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    throw ApiParseException('Expected JSON object for calibration audit');
+  }
+
+  /// Fetches multi-profile sensitivity analysis across the 3-pillar simplex.
+  Future<Map<String, dynamic>> fetchSensitivityAnalysis() async {
+    final data = await get('/risk/calibration/sensitivity');
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    throw ApiParseException('Expected JSON object for sensitivity report');
+  }
 }
+
+

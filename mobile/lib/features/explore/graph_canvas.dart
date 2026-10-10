@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api_client.dart';
 import 'graph_models.dart';
+import 'graph_geometry.dart';
 
 enum GraphViewState { loading, loaded, empty, error }
 
@@ -32,11 +33,13 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
   int? _selectedMaxDepth;
   bool _highlightPropagation = true;
 
+  Size _lastViewportSize = Size.zero;
+  bool _hasUserInteracted = false;
+
   @override
   void initState() {
     super.initState();
     _apiClient = widget.apiClient ?? ApiClient.instance;
-    _resetZoom();
     _fetchGraphData();
   }
 
@@ -46,8 +49,47 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
     super.dispose();
   }
 
+  void fitGraphToViewport({Size? viewportSize}) {
+    if (_graphData == null || _graphData!.nodes.isEmpty) {
+      _transformationController.value = Matrix4.identity()..scale(0.75);
+      return;
+    }
+    final size = viewportSize ?? _lastViewportSize;
+    if (size.width <= 0 || size.height <= 0) return;
+
+    final bounds = GraphViewportGeometry.computeGraphBounds(
+      _graphData!.nodes,
+      edges: _graphData!.edges,
+      margin: 40.0,
+    );
+
+    final matrix = GraphViewportGeometry.computeFitToViewportMatrix(
+      graphBounds: bounds,
+      viewportSize: size,
+      minScale: 0.20,
+      maxScale: 1.10,
+      extraPadding: 16.0,
+    );
+
+    setState(() {
+      _transformationController.value = matrix;
+    });
+  }
+
+  void _centerOnNode(ClimaNode node) {
+    if (_lastViewportSize.width <= 0 || _lastViewportSize.height <= 0) return;
+    final matrix = GraphViewportGeometry.computeCenterOnNodeMatrix(
+      nodePosition: node.position,
+      viewportSize: _lastViewportSize,
+      targetScale: 0.90,
+    );
+    setState(() {
+      _transformationController.value = matrix;
+    });
+  }
+
   void _resetZoom() {
-    _transformationController.value = Matrix4.identity()..scale(0.75);
+    fitGraphToViewport();
   }
 
   Future<void> _fetchGraphData() async {
@@ -74,6 +116,13 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
           _graphData = data;
           _state = data.nodes.isEmpty ? GraphViewState.empty : GraphViewState.loaded;
         });
+        if (data.nodes.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_hasUserInteracted) {
+              fitGraphToViewport();
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -463,59 +512,85 @@ class _InteractiveDependencyGraphState extends State<InteractiveDependencyGraph>
       propagationEdgeIds.addAll(p.pathEdges);
     }
 
-    // Canvas size accommodating backend coordinates (width 1000, height 800)
-    const double canvasWidth = 1250.0;
-    const double canvasHeight = 900.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
 
-    return ClipRect(
-      child: InteractiveViewer(
-        transformationController: _transformationController,
-        minScale: 0.35,
-        maxScale: 2.8,
-        boundaryMargin: const EdgeInsets.all(400),
-        child: SizedBox(
-          width: canvasWidth,
-          height: canvasHeight,
-          child: Stack(
-            children: [
-              // Directional Edges Layer
-              CustomPaint(
-                size: const Size(canvasWidth, canvasHeight),
-                painter: _GraphEdgePainter(
-                  edges: edges,
-                  nodes: nodes,
-                  propagationEdgeIds: _highlightPropagation ? propagationEdgeIds : {},
-                  selectedNodeId: _selectedNodeId,
-                ),
-              ),
-              // Typed Nodes Layer
-              ...nodes.map((node) {
-                final isSelected = node.id == _selectedNodeId;
-                final isPropagation =
-                    _highlightPropagation && propagationNodeIds.contains(node.id);
+        if (_lastViewportSize != viewportSize && viewportSize.width > 0 && viewportSize.height > 0) {
+          final isFirstLayout = _lastViewportSize == Size.zero;
+          _lastViewportSize = viewportSize;
+          if (isFirstLayout || !_hasUserInteracted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) fitGraphToViewport(viewportSize: viewportSize);
+            });
+          }
+        }
 
-                return Positioned(
-                  left: node.position.dx - 60,
-                  top: node.position.dy - 30,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedNodeId = node.id;
-                      });
-                      _showNodeBottomSheet(node);
-                    },
-                    child: _NodeWidget(
-                      node: node,
-                      isSelected: isSelected,
-                      isPropagation: isPropagation,
+        final graphBounds = GraphViewportGeometry.computeGraphBounds(nodes, edges: edges, margin: 100.0);
+        final double canvasWidth = math.max(1400.0, graphBounds.right + 200.0);
+        final double canvasHeight = math.max(1100.0, graphBounds.bottom + 200.0);
+
+        debugPrint('[GRAPH_DIAG] Canvas viewportSize: $viewportSize, nodes: ${nodes.length}, edges: ${edges.length}');
+        debugPrint('[GRAPH_DIAG] graphBounds: $graphBounds, canvasSize: ($canvasWidth, $canvasHeight)');
+        debugPrint('[GRAPH_DIAG] Current matrix: ${_transformationController.value}');
+
+        return ClipRect(
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            constrained: false,
+            minScale: 0.20,
+            maxScale: 3.0,
+            boundaryMargin: EdgeInsets.all(math.max(viewportSize.width, viewportSize.height) * 1.5),
+            onInteractionStart: (_) {
+              _hasUserInteracted = true;
+            },
+            child: SizedBox(
+              width: canvasWidth,
+              height: canvasHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Directional Edges Layer
+                  CustomPaint(
+                    size: Size(canvasWidth, canvasHeight),
+                    painter: _GraphEdgePainter(
+                      edges: edges,
+                      nodes: nodes,
+                      propagationEdgeIds: _highlightPropagation ? propagationEdgeIds : {},
+                      selectedNodeId: _selectedNodeId,
                     ),
                   ),
-                );
-              }),
-            ],
+                  // Typed Nodes Layer
+                  ...nodes.map((node) {
+                    final isSelected = node.id == _selectedNodeId;
+                    final isPropagation =
+                        _highlightPropagation && propagationNodeIds.contains(node.id);
+
+                    return Positioned(
+                      left: node.position.dx - 60,
+                      top: node.position.dy - 30,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedNodeId = node.id;
+                          });
+                          _centerOnNode(node);
+                          _showNodeBottomSheet(node);
+                        },
+                        child: _NodeWidget(
+                          node: node,
+                          isSelected: isSelected,
+                          isPropagation: isPropagation,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

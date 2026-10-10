@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User-scoped data isolation:
+    // Authenticated users can only read and write their own documents in /users/{userId}
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User-scoped subcollections:
+      // watchlists, alert_rules, investigations, scenarios, portfolio
+      match /{subcollection}/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Default deny: Block all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

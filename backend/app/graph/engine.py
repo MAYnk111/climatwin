@@ -92,7 +92,7 @@ class DependencyGraphEngine:
 
         try:
             simple_paths = list(
-                nx.all_simple_paths(self.graph, source=hazard_id, target=target_id, cutoff=5)
+                nx.all_simple_paths(self.graph, source=hazard_id, target=target_id, cutoff=7)
             )
             for path in simple_paths:
                 edge_ids = []

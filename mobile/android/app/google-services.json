@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "291514312791",
+    "project_id": "invest-2-77a18",
+    "storage_bucket": "invest-2-77a18.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:291514312791:android:201b7240fa339516dc1b12",
+        "android_client_info": {
+          "package_name": "com.climatwin.climatwin_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlTQ1AqZWmmRTLQ-ncHtenUU4_BLe8JaY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

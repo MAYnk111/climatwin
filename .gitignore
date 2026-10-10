@@ -4,8 +4,13 @@
 !.env.example
 *.pem
 *.key
-serviceAccountKey.json
-firebase-credentials.json
+*serviceAccountKey*.json
+*firebase-credentials*.json
+
+# Device & Test Artifacts
+*.png
+*.jpg
+*.jpeg
 
 # Python
 __pycache__/

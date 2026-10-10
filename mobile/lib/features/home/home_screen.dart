@@ -1,20 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/currency_utils.dart';
+import '../watchlist/watchlist_screen.dart';
+import '../market/market_screen.dart';
+import '../alerts/alerts_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onExploreGraph;
   final VoidCallback onInvestigate;
   final VoidCallback onSimulate;
+  final VoidCallback? onOpenWatchlist;
+  final VoidCallback? onOpenMarket;
+  final VoidCallback? onOpenAlerts;
 
   const HomeScreen({
     super.key,
     required this.onExploreGraph,
     required this.onInvestigate,
     required this.onSimulate,
+    this.onOpenWatchlist,
+    this.onOpenMarket,
+    this.onOpenAlerts,
   });
 
   @override
   Widget build(BuildContext context) {
+    const double portfolioUsd = 10000000.0; // $10.0M
+    const double portfolioInr = portfolioUsd * CurrencyFormatter.usdToInrRate; // ₹83.5 Cr
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -99,9 +112,85 @@ class HomeScreen extends StatelessWidget {
                       color: ClimatwinTheme.textSecondary,
                     ),
                   ),
+                  const Divider(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Portfolio AUM', style: TextStyle(fontSize: 11, color: ClimatwinTheme.textMuted)),
+                          const SizedBox(height: 2),
+                          Text(
+                            CurrencyFormatter.formatInr(portfolioInr),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ClimatwinTheme.textPrimary),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Climate Value-at-Risk', style: TextStyle(fontSize: 11, color: ClimatwinTheme.textMuted)),
+                          const SizedBox(height: 2),
+                          Text(
+                            CurrencyFormatter.formatInr(portfolioInr * 0.182),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ClimatwinTheme.riskHigh),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+
+          // Quick Navigation Hub
+          Row(
+            children: [
+              Expanded(
+                child: _QuickHubButton(
+                  icon: Icons.bookmark_outline,
+                  label: 'Watchlist',
+                  onTap: () {
+                    if (onOpenWatchlist != null) {
+                      onOpenWatchlist!();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const WatchlistScreen()));
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _QuickHubButton(
+                  icon: Icons.candlestick_chart_outlined,
+                  label: 'Markets (₹)',
+                  onTap: () {
+                    if (onOpenMarket != null) {
+                      onOpenMarket!();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketScreen()));
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _QuickHubButton(
+                  icon: Icons.notifications_active_outlined,
+                  label: 'Alerts',
+                  onTap: () {
+                    if (onOpenAlerts != null) {
+                      onOpenAlerts!();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AlertsScreen()));
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -150,16 +239,27 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Important Alerts
-          const Text(
-            'Important Alerts',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: ClimatwinTheme.textPrimary,
-            ),
+          // Important Alerts Header & Feed
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Important Alerts',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: ClimatwinTheme.textPrimary,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AlertsScreen()));
+                },
+                child: const Text('View All', style: TextStyle(color: ClimatwinTheme.darkGreenPrimary, fontSize: 12)),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _AlertCard(
             title: 'Taiwan Baoshan Reservoir Stage 2 Rationing',
             impact: 'Affects TSMC Fab 12 • Propagates to NVDA & AAPL',
@@ -177,9 +277,9 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Quick Actions
+          // Quick Primary Actions
           const Text(
-            'Quick Actions',
+            'Primary Actions',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -192,12 +292,12 @@ class HomeScreen extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: ClimatwinTheme.darkGreenPrimary,
+                    foregroundColor: ClimatwinTheme.textPrimary,
                     side: const BorderSide(color: ClimatwinTheme.borderSubtle),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(Icons.account_tree_outlined, size: 18),
+                  icon: const Icon(Icons.account_tree_outlined, size: 18, color: ClimatwinTheme.darkGreenPrimary),
                   label: const Text('Inspect Graph', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   onPressed: onExploreGraph,
                 ),
@@ -220,6 +320,37 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickHubButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickHubButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            children: [
+              Icon(icon, size: 20, color: ClimatwinTheme.darkGreenPrimary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ClimatwinTheme.textPrimary),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

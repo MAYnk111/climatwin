@@ -48,3 +48,59 @@ def test_graph_filtering():
     critical_subgraph = engine.filter_subgraph(min_risk_level=RiskLevel.CRITICAL)
     for node in critical_subgraph.nodes:
         assert node.risk_level == RiskLevel.CRITICAL
+
+
+def test_logistics_hubs_and_commodity_provenance():
+    """Verifies that sourced logistics hubs, commodities, corridors, and provenance tags exist."""
+    engine = build_demo_graph()
+    node_ids = set(engine.node_metadata.keys())
+
+    # Core nodes plus enriched hubs and commodities
+    assert "hub_kaohsiung_port" in node_ids
+    assert "hub_rotterdam_port" in node_ids
+    assert "comm_neon_gas" in node_ids
+    assert "tr_taiwan_strait_shipping" in node_ids
+
+    # Provenance tags distinguish verified assets from synthetic scenarios
+    kh_port = engine.node_metadata["hub_kaohsiung_port"]
+    assert kh_port.properties.get("provenance") == "verified_physical_facility"
+    assert "TIPC" in kh_port.properties.get("data_source", "")
+
+    neon_comm = engine.node_metadata["comm_neon_gas"]
+    assert neon_comm.properties.get("provenance") == "sourced_industrial_commodity"
+
+    hazard = engine.node_metadata["hz_taiwan_drought"]
+    assert hazard.properties.get("provenance") == "synthetic_scenario_hazard"
+    assert hazard.properties.get("is_scenario") is True
+
+    # Sectivia commercial links
+    nvda_edge = engine.edge_metadata["e_tsmc_to_nvda"]
+    assert nvda_edge.properties.get("provenance") == "verified_sectivia"
+    assert "Sectivia" in nvda_edge.properties.get("attribution", "")
+
+
+def test_multi_tier_2nd_and_3rd_order_propagation_to_portfolio():
+    """Verifies multi-tier 2nd- and 3rd-order propagation paths through suppliers to portfolio holdings."""
+    engine = build_demo_graph()
+
+    # Taiwan drought -> Hsinchu -> Fab12 -> TSMC -> NVDA -> Fund (5 hops)
+    tw_paths = engine.find_hazard_propagation_paths(
+        hazard_id="hz_taiwan_drought",
+        target_id="cust_global_tech_fund",
+    )
+    assert len(tw_paths) >= 2  # Through NVDA and AAPL
+    nvda_path = next(p for p in tw_paths if "comp_nvidia" in p.path_nodes)
+    assert len(nvda_path.path_nodes) == 6
+    assert nvda_path.cumulative_risk > 0
+
+    # Rhine low water -> Rhine Valley -> Rhine Barge -> BASF Ludwigshafen -> BASF SE -> BMW -> Fund (6 hops, 3rd order)
+    rhine_paths = engine.find_hazard_propagation_paths(
+        hazard_id="hz_rhine_low_water",
+        target_id="cust_global_tech_fund",
+    )
+    assert len(rhine_paths) >= 1
+    rhine_path = rhine_paths[0]
+    assert len(rhine_path.path_nodes) == 7
+    assert "tr_rhine_barge" in rhine_path.path_nodes
+    assert "comp_bmw" in rhine_path.path_nodes
+    assert rhine_path.cumulative_risk > 0
