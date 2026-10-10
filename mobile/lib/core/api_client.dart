@@ -48,7 +48,7 @@ class ApiClient {
         _httpClient = httpClient ?? http.Client();
 
   static String _getDefaultBaseUrl() {
-    return 'http://localhost:8000/api/v1';
+    return 'https://climatwin-backend.onrender.com/api/v1';
   }
 
   void updateBaseUrl(String newBaseUrl) {

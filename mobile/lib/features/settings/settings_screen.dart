@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/firestore_service.dart';
 import '../auth/auth_screen.dart';
@@ -249,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: const Icon(Icons.api_outlined, color: ClimatwinTheme.darkGreenPrimary),
                   title: const Text('FastAPI Backend Connectivity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('http://localhost:8000/api/v1 (Port 8000)', style: TextStyle(fontSize: 11)),
+                  subtitle: Text(ApiClient.instance.baseUrl, style: const TextStyle(fontSize: 11)),
                   trailing: const Icon(Icons.check_circle_outline, color: ClimatwinTheme.riskLow, size: 18),
                 ),
               ],
