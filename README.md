@@ -9,6 +9,7 @@ CLIMATWIN bridges geospatial climate hazard modeling, multi-tier corporate suppl
 ## Quick Navigation
 - [What Does CLIMATWIN Do?](#-what-does-climatwin-do)
 - [System Architecture](#-system-architecture)
+- [Platform Development Phases & Key Features](#-platform-development-phases--key-features)
 - [How to Run Locally](#-how-to-run-locally)
 - [Deploying the Backend on Render](#-deploying-the-backend-on-render)
 - [Connecting the Mobile App](#-connecting-the-mobile-app)
@@ -46,6 +47,96 @@ CLIMATWIN bridges geospatial climate hazard modeling, multi-tier corporate suppl
        │  • Token-Efficient Offline Caching & In-Memory Redis   │
        └────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 📈 Platform Development Phases & Key Features
+
+The CLIMATWIN application was built across structured engineering phases, integrating physical climate modeling, multi-agent reasoning, deterministic financial arithmetic, and a high-performance mobile UI:
+
+### 🔹 Phase 1: Core Foundation & API Binding
+- **FastAPI Gateway**: Asynchronous gateway serving portfolio health, hazard feeds, and risk telemetry.
+- **Flutter 4-Destination Shell**: Clean, professional mobile design with Emerald/Teal accents adhering to financial interface standards:
+  1. **Home**: Portfolio Climate Value-at-Risk (VaR), physical vs. transition risk dials, active alert cards.
+  2. **Explore**: Corporate search, multi-tier supply chain dependencies, and interactive canvas.
+  3. **Intelligence**: Real-time climate disruptions, source evidence attribution, multi-agent AI investigations.
+  4. **Simulate**: Scenario branch tuning, baseline vs. stressed comparisons, and capital preservation metrics.
+- **Typed Data Layer**: Robust client-side models handling edge-cases, null tolerance, and resilient network exception translation.
+
+---
+
+### 🔹 Phase 2: Live Climate & Geospatial Adapters
+- **World Bank CCKP CMIP6 Integration**:
+  - Global climate projection timeseries for surface temperature (`tas`), precipitation (`pr`), and 12-month drought index (`spei12`).
+  - Historical observations (`1950–2014`) vs. future climate pathways (`2015–2100` under `ssp245` & `ssp585`).
+  - 24-hour disk cache with zero silent ISO-3 country substitution.
+- **GDELT 2.0 Live News Pipeline**:
+  - Real-time climate disruption scanning with SHA-256 event deduplication and 25-minute TTL caching.
+  - Automated background news poller feeding urgent hazard alerts to the portfolio risk monitor.
+
+---
+
+### 🔹 Phase 3: Deterministic Physical Risk Engine & Multi-Tier Graph
+- **Quantitative H-E-V Model**:
+  - Closed-form Hazard-Exposure-Vulnerability formulation:
+    $$\text{Composite Risk} = 0.35 \times H + 0.35 \times E + 0.30 \times V$$
+  - Pure deterministic Python calculations without numerical LLM hallucinations.
+- **NetworkX Multi-Tier Dependency Graph**:
+  - 18 nodes and 19 directed edges across 5 structural tiers:
+    - **Tier 0 (Hazards)**: Droughts, river low-water bottlenecks.
+    - **Tier 1 (Facilities & Regions)**: Semiconductor Fabs, chemical complexes, deep-water ports.
+    - **Tier 2 (Commodities & Corridors)**: High-purity neon gas, ultra-pure water, shipping lanes, barge corridors.
+    - **Tier 3 (Companies)**: Apple, NVIDIA, BMW.
+    - **Tier 4 (Portfolio)**: Global climate-resilient equity fund.
+  - Multi-tier risk attenuation factor (15% damping per supply chain hop).
+
+---
+
+### 🔹 Phase 3.5: Risk Calibration, Sensitivity & Explainability
+- **Dataset Audit**: Audits empirical corporate supply-chain benchmarks (Sectivia CC BY 4.0).
+- **Simplex Sensitivity Analysis**:
+  - Evaluates 6 alternative weight profiles across the 3-pillar simplex ($\sum w_i = 1$).
+  - Reports Spearman rank correlation ($\rho$), max score delta ($\Delta$), and Ranking Stability Index ($0.867$).
+- **Multi-Layer Explainability**:
+  - Closed-form component attribution (exact points & percentages).
+  - Graph propagation narratives explaining multi-hop bottlenecks.
+  - Step-by-step financial arithmetic decomposing portfolio drawdown.
+
+---
+
+### 🔹 Phase 4: LangGraph Multi-Agent Intelligence
+- **Specialized Climate Agents**:
+  - **Hazard Analyst Agent**: Assesses climate severity, anomaly duration, and geospatial bounds.
+  - **Supply Chain Detective Agent**: Identifies tier-1 to tier-3 bottlenecks, logistics hubs, and single-source dependencies.
+  - **Vulnerability Specialist Agent**: Evaluates operational redundancies, water recycling, and facility adaptation.
+  - **Financial Impact Assessor Agent**: Models unmitigated revenue disruption and Value-at-Risk (VaR).
+  - **Risk Investigator & Mitigation Advisor**: Synthesizes verified multi-agent findings into prioritized mitigation interventions.
+- **LangSmith Tracing**: Optional zero-overhead execution tracing on LangSmith for agent debugging and auditability.
+- **Token-Efficient Offline Fallback**: Deterministic rule-based intelligence synthesizer that runs when no API keys are configured, preventing quota failures.
+
+---
+
+### 🔹 Phase 5: Interactive Mobile Dependency Graph Canvas
+- **Native Canvas Architecture**:
+  - Built using Flutter's native `InteractiveViewer` + `CustomPainter` with unconstrained canvas sizing (`constrained: false`).
+  - Smooth 60 FPS multi-touch gestures: fluid panning, pinch-to-zoom (`0.20x` to `3.0x`), and interactive node selection.
+  - `fitGraphToViewport`: Auto-centers and uniformly scales all 18 nodes and 19 edges to fit mobile portrait screens cleanly.
+  - Interactive hit-testing triggering native bottom sheets with live in-situ agent investigations.
+
+---
+
+### 🔹 Phase 6: Enterprise User Experience & Cloud Deployment
+- **Firebase Authentication & User Isolation**:
+  - Email/password authentication, guest login, and password reset flows.
+  - Scoped Firestore user data isolation (`/users/{uid}/scenarios`, `/users/{uid}/watchlists`, `/users/{uid}/investigations`).
+- **Financial Market Dials & INR Localization**:
+  - Multi-currency support formatting in Indian Rupees (₹ Crores and Lakhs at ₹83.50/USD benchmark) and US Dollars.
+  - Live watchlist, market index tracking, and interactive candlestick price charts.
+- **Push Notification & Alerts Center**:
+  - Firebase Cloud Messaging (FCM) integration with in-app notification bell and severity filtering (Critical, High, Medium).
+- **One-Click Cloud Deployment**:
+  - Infrastructure-as-Code `render.yaml` blueprint and multi-stage `Dockerfile` for free zero-downtime hosting on Render.
+  - Automated release pipeline producing signed release APKs (`flutter build apk --release`).
 
 ---
 
