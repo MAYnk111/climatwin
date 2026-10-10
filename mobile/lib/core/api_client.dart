@@ -43,7 +43,7 @@ class ApiClient {
   ApiClient({
     String? baseUrl,
     http.Client? httpClient,
-    this.timeoutDuration = const Duration(seconds: 25),
+    this.timeoutDuration = const Duration(seconds: 35),
   })  : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
         _httpClient = httpClient ?? http.Client();
 
@@ -109,12 +109,12 @@ class ApiClient {
       }
     } on TimeoutException {
       throw ApiTimeoutException(
-        'Connection timed out after ${timeoutDuration.inSeconds} seconds. Please check if the backend is running.',
+        'Connection timed out after ${timeoutDuration.inSeconds} seconds. The backend may be waking up on Render.',
         uri: uri,
       );
     } on SocketException catch (e) {
       throw ApiConnectionException(
-        'Failed to connect to backend server at $baseUrl. Ensure FastAPI server is running on port 8000. ($e)',
+        'Failed to connect to backend server at $baseUrl. ($e)',
         uri: uri,
       );
     } on http.ClientException catch (e) {
@@ -166,12 +166,12 @@ class ApiClient {
       }
     } on TimeoutException {
       throw ApiTimeoutException(
-        'Connection timed out after ${timeoutDuration.inSeconds} seconds. Please check if the backend is running.',
+        'Connection timed out after ${timeoutDuration.inSeconds} seconds. The backend may be waking up on Render.',
         uri: uri,
       );
     } on SocketException catch (e) {
       throw ApiConnectionException(
-        'Failed to connect to backend server at $baseUrl. Ensure FastAPI server is running on port 8000. ($e)',
+        'Failed to connect to backend server at $baseUrl. ($e)',
         uri: uri,
       );
     } on http.ClientException catch (e) {
