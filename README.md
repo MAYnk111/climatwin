@@ -6,7 +6,16 @@ CLIMATWIN bridges geospatial climate hazard modeling, multi-tier corporate suppl
 
 ---
 
+### 📲 Download & Install Android App
+> **⚠️ Important Notice**: Please download and install this APK **directly on an Android phone** (or Android device/emulator). It connects directly to the live production cloud backend.
+> 
+> 👉 **[Download Production APK (v1.0.0)](https://github.com/MAYnk111/climatwin/releases/download/v1.0.0/climatwin-release.apk)**  
+> Direct URL: `https://github.com/MAYnk111/climatwin/releases/download/v1.0.0/climatwin-release.apk`
+
+---
+
 ## Quick Navigation
+- [Download Android APK](#-download--install-android-app)
 - [What Does CLIMATWIN Do?](#-what-does-climatwin-do)
 - [System Architecture](#-system-architecture)
 - [Platform Development Phases & Key Features](#-platform-development-phases--key-features)
